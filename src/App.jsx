@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+
 import { Play, Square, MapPin, Activity, Zap, Timer, Navigation, Wifi, Signal, Target, Map, Info } from 'lucide-react';
 import MapCanvas from './components/MapCanvas';
 import useGeoTracker from './hooks/useGeoTracker';
@@ -121,11 +122,15 @@ function App() {
   
   // Calculate stats with filtered positions
   const filteredPositions = filterValidMovements(sessionPositions);
-  const totalDistance = filteredPositions.reduce((total, pos, i) => {
-    if (i === 0) return 0;
-    return total + calculateDistance(filteredPositions[i-1], pos);
-  }, 0);
-
+const totalDistance = useMemo(() => {
+  if (filteredPositions.length < 2) return 0;
+  
+  let distance = 0;
+  for (let i = 1; i < filteredPositions.length; i++) {
+    distance += calculateDistance(filteredPositions[i-1], filteredPositions[i]);
+  }
+  return distance;
+}, [filteredPositions]);
   const averageSpeed = calculateAverageSpeed(sessionPositions);
   const currentSpeed = calculateCurrentSpeed(sessionPositions);
   
