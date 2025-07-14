@@ -32,19 +32,14 @@ function filterValidMovements(positions) {
     // Calculate distance between points
     const distance = calculateDistance(prev, current);
     
-    // More lenient filtering for walking/running
-    // Use a smaller threshold that still filters noise but allows real movement
-    const baseAccuracy = Math.max(prev.accuracy || 10, current.accuracy || 10);
+    // Only add point if movement is significant enough
+    // Use GPS accuracy to determine minimum movement threshold
     const minMovement = Math.max(
-      baseAccuracy * 0.5, // Use 50% of accuracy instead of sum
-      2 // Minimum 2 meters instead of 5 - better for walking
+      (prev.accuracy || 10) + (current.accuracy || 10), // Sum of both accuracies
+      5 // Minimum 5 meters to filter out GPS noise
     );
     
-    // Also consider time - if enough time has passed, include the point even if distance is small
-    const timeDiff = (current.timestamp - prev.timestamp) / 1000; // seconds
-    const shouldIncludeByTime = timeDiff > 10; // Include if 10+ seconds have passed
-    
-    if (distance > minMovement || shouldIncludeByTime) {
+    if (distance > minMovement) {
       filtered.push(current);
     }
   }
@@ -339,7 +334,7 @@ function App() {
           </div>
         </div>
 
-        
+       
       </div>
     </div>
   );
