@@ -32,18 +32,19 @@ function filterValidMovements(positions) {
     // Calculate distance between points
     const distance = calculateDistance(prev, current);
     
-    // Use much stricter filtering for GPS noise
-    // Combine accuracy values and add a higher minimum threshold
-    const accuracy1 = prev.accuracy || 5;
-    const accuracy2 = current.accuracy || 5;
+    // Balanced filtering - not too strict, not too loose
+    const accuracy1 = prev.accuracy || 10;
+    const accuracy2 = current.accuracy || 10;
+    
+    // Dynamic minimum movement based on accuracy
     const minMovement = Math.max(
-      accuracy1 + accuracy2, // Sum of both accuracies
-      5 // Minimum 15 meters to filter out GPS noise (increased from 5)
+      Math.max(accuracy1, accuracy2), // Use the worse accuracy of the two
+      8 // Minimum 8 meters to filter out GPS noise (balanced)
     );
     
-    // Additional filter: ignore points that are too close in time (< 3 seconds)
+    // Time-based filter: ignore points that are too close in time
     const timeDiff = (current.timestamp - prev.timestamp) / 1000;
-    const minTimeGap = 3; // seconds
+    const minTimeGap = 2; // 2 seconds (reduced from 3)
     
     if (distance > minMovement && timeDiff >= minTimeGap) {
       filtered.push(current);
