@@ -19,6 +19,34 @@ function calculateDistance(pos1, pos2) {
   return R * c; // Distance in meters
 }
 
+// Filter positions to reduce GPS noise and false movements
+function filterValidMovements(positions) {
+  if (positions.length < 2) return positions;
+  
+  const filtered = [positions[0]]; // Always include first position
+  
+  for (let i = 1; i < positions.length; i++) {
+    const prev = filtered[filtered.length - 1];
+    const current = positions[i];
+    
+    // Calculate distance between points
+    const distance = calculateDistance(prev, current);
+    
+    // Only add point if movement is significant enough
+    // Use GPS accuracy to determine minimum movement threshold
+    const minMovement = Math.max(
+      (prev.accuracy || 10) + (current.accuracy || 10), // Sum of both accuracies
+      5 // Minimum 5 meters to filter out GPS noise
+    );
+    
+    if (distance > minMovement) {
+      filtered.push(current);
+    }
+  }
+  
+  return filtered;
+}
+
 // Format distance in appropriate units
 function formatDistance(meters) {
   if (meters >= 1000) {
@@ -36,17 +64,34 @@ function formatSpeed(metersPerSecond) {
 
 // Calculate average speed
 function calculateAverageSpeed(positions) {
-  if (positions.length < 2) return 0;
+  const filtered = filterValidMovements(positions);
+  if (filtered.length < 2) return 0;
   
-  const totalDistance = positions.reduce((total, pos, i) => {
+  const totalDistance = filtered.reduce((total, pos, i) => {
     if (i === 0) return 0;
-    return total + calculateDistance(positions[i-1], pos);
+    return total + calculateDistance(filtered[i-1], pos);
   }, 0);
   
-  const totalTime = (positions[positions.length - 1].timestamp - positions[0].timestamp) / 1000; // in seconds
+  const totalTime = (filtered[filtered.length - 1].timestamp - filtered[0].timestamp) / 1000; // in seconds
   
   if (totalTime <= 0) return 0;
   return totalDistance / totalTime; // m/s
+}
+
+// Calculate current speed with smoothing
+function calculateCurrentSpeed(positions) {
+  const filtered = filterValidMovements(positions);
+  if (filtered.length < 2) return 0;
+  
+  // Use last few points for current speed calculation
+  const recentPoints = filtered.slice(-3); // Last 3 filtered points
+  if (recentPoints.length < 2) return 0;
+  
+  const distance = calculateDistance(recentPoints[0], recentPoints[recentPoints.length - 1]);
+  const timeDiff = (recentPoints[recentPoints.length - 1].timestamp - recentPoints[0].timestamp) / 1000;
+  
+  if (timeDiff <= 0) return 0;
+  return distance / timeDiff; // m/s
 }
 
 // Format time duration
@@ -74,15 +119,15 @@ function App() {
     }
   }, [tracking, positions]);
   
-  // Calculate stats
-  const totalDistance = sessionPositions.reduce((total, pos, i) => {
+  // Calculate stats with filtered positions
+  const filteredPositions = filterValidMovements(sessionPositions);
+  const totalDistance = filteredPositions.reduce((total, pos, i) => {
     if (i === 0) return 0;
-    return total + calculateDistance(sessionPositions[i-1], pos);
+    return total + calculateDistance(filteredPositions[i-1], pos);
   }, 0);
 
   const averageSpeed = calculateAverageSpeed(sessionPositions);
-  const currentSpeed = sessionPositions.length > 0 ? 
-    (sessionPositions[sessionPositions.length - 1].speed || 0) : 0;
+  const currentSpeed = calculateCurrentSpeed(sessionPositions);
   
   const duration = sessionStartTime && sessionPositions.length > 0 ? 
     formatDuration(sessionStartTime, sessionPositions[sessionPositions.length - 1].timestamp) : '0m 0s';
@@ -279,7 +324,18 @@ function App() {
           </div>
         </div>
 
-       
+        {/* Debug Info */}
+        <div className="text-xs text-gray-500">
+          <details>
+            <summary className="cursor-pointer hover:text-gray-400 flex items-center gap-2">
+              <Info className="h-4 w-4" />
+              Debug Info
+            </summary>
+            <pre className="mt-2 p-4 bg-gradient-to-br from-slate-800/60 to-slate-900/60 backdrop-blur-sm rounded-lg overflow-auto max-h-40 border border-slate-700/50">
+              {JSON.stringify(sessionPositions, null, 2)}
+            </pre>
+          </details>
+        </div>
       </div>
     </div>
   );
