@@ -32,21 +32,14 @@ function filterValidMovements(positions) {
     // Calculate distance between points
     const distance = calculateDistance(prev, current);
     
-    // Balanced filtering - not too strict, not too loose
-    const accuracy1 = prev.accuracy || 10;
-    const accuracy2 = current.accuracy || 10;
-    
-    // Dynamic minimum movement based on accuracy
+    // Only add point if movement is significant enough
+    // Use GPS accuracy to determine minimum movement threshold
     const minMovement = Math.max(
-      Math.max(accuracy1, accuracy2), // Use the worse accuracy of the two
-      8 // Minimum 8 meters to filter out GPS noise (balanced)
+      (prev.accuracy || 10) + (current.accuracy || 10), // Sum of both accuracies
+      5 // Minimum 5 meters to filter out GPS noise
     );
     
-    // Time-based filter: ignore points that are too close in time
-    const timeDiff = (current.timestamp - prev.timestamp) / 1000;
-    const minTimeGap = 2; // 2 seconds (reduced from 3)
-    
-    if (distance > minMovement && timeDiff >= minTimeGap) {
+    if (distance > minMovement) {
       filtered.push(current);
     }
   }
@@ -70,7 +63,7 @@ function formatSpeed(metersPerSecond) {
 }
 
 // Calculate average speed
-function calculateAverageSpeed(positions, sessionStartTime) {
+function calculateAverageSpeed(positions) {
   const filtered = filterValidMovements(positions);
   if (filtered.length < 2) return 0;
   
@@ -79,9 +72,7 @@ function calculateAverageSpeed(positions, sessionStartTime) {
     return total + calculateDistance(filtered[i-1], pos);
   }, 0);
   
-  // Use actual session duration instead of GPS timestamp difference
-  const currentTime = Date.now();
-  const totalTime = (currentTime - sessionStartTime) / 1000; // in seconds
+  const totalTime = (filtered[filtered.length - 1].timestamp - filtered[0].timestamp) / 1000; // in seconds
   
   if (totalTime <= 0) return 0;
   return totalDistance / totalTime; // m/s
@@ -103,9 +94,9 @@ function calculateCurrentSpeed(positions) {
   return distance / timeDiff; // m/s
 }
 
-// Format time duration using actual elapsed time
-function formatDuration(startTime) {
-  const duration = (Date.now() - startTime) / 1000; // in seconds
+// Format time duration
+function formatDuration(startTime, endTime) {
+  const duration = (endTime - startTime) / 1000; // in seconds
   const minutes = Math.floor(duration / 60);
   const seconds = Math.floor(duration % 60);
   return `${minutes}m ${seconds}s`;
@@ -135,12 +126,11 @@ function App() {
     return total + calculateDistance(filteredPositions[i-1], pos);
   }, 0);
 
-  const averageSpeed = sessionStartTime ? calculateAverageSpeed(sessionPositions, sessionStartTime) : 0;
+  const averageSpeed = calculateAverageSpeed(sessionPositions);
   const currentSpeed = calculateCurrentSpeed(sessionPositions);
   
-  // Use actual session start time for duration calculation
-  const duration = sessionStartTime && tracking ? 
-    formatDuration(sessionStartTime) : '0m 0s';
+  const duration = sessionStartTime && sessionPositions.length > 0 ? 
+    formatDuration(sessionStartTime, sessionPositions[sessionPositions.length - 1].timestamp) : '0m 0s';
 
   return (
     <div className="min-h-screen p-6 bg-gradient-to-br from-slate-900 via-black to-slate-900 text-white">
