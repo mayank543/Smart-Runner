@@ -339,24 +339,7 @@ function App() {
           </div>
         </div>
 
-        {/* Debug Info */}
-        <div className="text-xs text-gray-500">
-          <details>
-            <summary className="cursor-pointer hover:text-gray-400 flex items-center gap-2">
-              <Info className="h-4 w-4" />
-              Debug Info
-            </summary>
-            <div className="mt-2 p-4 bg-gradient-to-br from-slate-800/60 to-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-700/50 space-y-2">
-              <p>Session Positions: {sessionPositions.length}</p>
-              <p>Filtered Positions: {filteredPositions.length}</p>
-              <p>Total Distance: {totalDistance.toFixed(2)} meters</p>
-              <p>Tracking: {tracking ? 'true' : 'false'}</p>
-              <pre className="overflow-auto max-h-40 text-xs">
-                {JSON.stringify(sessionPositions, null, 2)}
-              </pre>
-            </div>
-          </details>
-        </div>
+        
       </div>
     </div>
   );
