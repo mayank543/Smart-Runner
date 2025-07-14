@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from 'react';
-
 import { Play, Square, MapPin, Activity, Zap, Timer, Navigation, Wifi, Signal, Target, Map, Info } from 'lucide-react';
 import MapCanvas from './components/MapCanvas';
 import useGeoTracker from './hooks/useGeoTracker';
@@ -37,7 +36,7 @@ function filterValidMovements(positions) {
     // Use GPS accuracy to determine minimum movement threshold
     const minMovement = Math.max(
       (prev.accuracy || 10) + (current.accuracy || 10), // Sum of both accuracies
-      15 // Minimum 5 meters to filter out GPS noise
+      5 // Minimum 5 meters to filter out GPS noise
     );
     
     if (distance > minMovement) {
@@ -121,16 +120,18 @@ function App() {
   }, [tracking, positions]);
   
   // Calculate stats with filtered positions
-  const filteredPositions = filterValidMovements(sessionPositions);
-const totalDistance = useMemo(() => {
-  if (filteredPositions.length < 2) return 0;
+  const filteredPositions = useMemo(() => filterValidMovements(sessionPositions), [sessionPositions]);
   
-  let distance = 0;
-  for (let i = 1; i < filteredPositions.length; i++) {
-    distance += calculateDistance(filteredPositions[i-1], filteredPositions[i]);
-  }
-  return distance;
-}, [filteredPositions]);
+  const totalDistance = useMemo(() => {
+    if (filteredPositions.length < 2) return 0;
+    
+    let distance = 0;
+    for (let i = 1; i < filteredPositions.length; i++) {
+      distance += calculateDistance(filteredPositions[i-1], filteredPositions[i]);
+    }
+    return distance;
+  }, [filteredPositions]);
+
   const averageSpeed = calculateAverageSpeed(sessionPositions);
   const currentSpeed = calculateCurrentSpeed(sessionPositions);
   
