@@ -3,8 +3,31 @@ import { useRef, useEffect, useState } from 'react';
 // Enhanced MapCanvas with Intersection Observer API for performance optimization
 const MapCanvas = ({ positions }) => {
   const canvasRef = useRef(null);
+  const containerRef = useRef(null);
   const [isVisible, setIsVisible] = useState(true);
+  const [canvasSize, setCanvasSize] = useState({ width: 500, height: 400 });
   const observerRef = useRef(null);
+
+  // Handle responsive canvas sizing
+  useEffect(() => {
+    const updateCanvasSize = () => {
+      if (containerRef.current) {
+        const container = containerRef.current;
+        const containerWidth = container.offsetWidth;
+        
+        // Calculate responsive dimensions
+        const width = Math.min(containerWidth - 16, 800); // Max width 800px, subtract padding
+        const height = Math.min(width * 0.6, 400); // Maintain aspect ratio, max height 400px
+        
+        setCanvasSize({ width, height });
+      }
+    };
+
+    updateCanvasSize();
+    window.addEventListener('resize', updateCanvasSize);
+    
+    return () => window.removeEventListener('resize', updateCanvasSize);
+  }, []);
 
   // Intersection Observer API - Only render when canvas is visible
   useEffect(() => {
@@ -48,19 +71,22 @@ const MapCanvas = ({ positions }) => {
       
       const ctx = canvas.getContext("2d");
       
-      // Clear canvas with smooth animation
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // Clear canvas with black background
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
       
-      // Draw background grid for reference
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+      // Draw subtle grid with dark green color
+      ctx.strokeStyle = "rgba(34, 197, 94, 0.1)"; // green-500 with low opacity
       ctx.lineWidth = 1;
-      for (let i = 0; i <= canvas.width; i += 50) {
+      const gridSize = Math.min(canvas.width, canvas.height) / 10;
+      
+      for (let i = 0; i <= canvas.width; i += gridSize) {
         ctx.beginPath();
         ctx.moveTo(i, 0);
         ctx.lineTo(i, canvas.height);
         ctx.stroke();
       }
-      for (let i = 0; i <= canvas.height; i += 50) {
+      for (let i = 0; i <= canvas.height; i += gridSize) {
         ctx.beginPath();
         ctx.moveTo(0, i);
         ctx.lineTo(canvas.width, i);
@@ -70,30 +96,38 @@ const MapCanvas = ({ positions }) => {
       console.log("🎨 Canvas redraw - positions:", positions.length);
       
       if (positions.length === 0) {
-        // Draw "No data" message
-        ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
-        ctx.font = "16px Arial";
+        // Draw "No data" message with green theme
+        ctx.fillStyle = "#10b981"; // green-500
+        ctx.font = `${Math.min(canvas.width, canvas.height) / 25}px Arial`;
         ctx.textAlign = "center";
         ctx.fillText("No tracking data yet", canvas.width / 2, canvas.height / 2);
+        ctx.fillStyle = "#6b7280"; // gray-500
+        ctx.font = `${Math.min(canvas.width, canvas.height) / 30}px Arial`;
         ctx.fillText("Click 'Start Run' to begin tracking", canvas.width / 2, canvas.height / 2 + 25);
         return;
       }
 
       if (positions.length === 1) {
-        // Draw single point with pulsing animation
+        // Draw single point with pulsing green animation
         const pos = positions[0];
         const time = Date.now() / 1000;
         const pulse = Math.sin(time * 3) * 0.5 + 0.5;
         
-        ctx.fillStyle = `rgba(50, 205, 50, ${0.8 + pulse * 0.2})`;
+        // Outer glow
+        ctx.shadowColor = "#10b981";
+        ctx.shadowBlur = 20;
+        ctx.fillStyle = `rgba(16, 185, 129, ${0.8 + pulse * 0.2})`; // green-500
         ctx.beginPath();
         ctx.arc(canvas.width / 2, canvas.height / 2, 8 + pulse * 4, 0, 2 * Math.PI);
         ctx.fill();
+        ctx.shadowBlur = 0;
         
-        ctx.fillStyle = "white";
-        ctx.font = "12px Arial";
+        // Labels
+        ctx.fillStyle = "#10b981";
+        ctx.font = `${Math.min(canvas.width, canvas.height) / 35}px Arial`;
         ctx.textAlign = "center";
         ctx.fillText("Start Point", canvas.width / 2, canvas.height / 2 + 35);
+        ctx.fillStyle = "#9ca3af"; // gray-400
         ctx.fillText(`Accuracy: ${pos.accuracy?.toFixed(1)}m`, canvas.width / 2, canvas.height / 2 + 50);
         return;
       }
@@ -108,7 +142,7 @@ const MapCanvas = ({ positions }) => {
       
       console.log("📐 Bounds:", { minLat, maxLat, minLon, maxLon });
 
-      const padding = 30;
+      const padding = Math.min(canvas.width, canvas.height) / 15;
       const width = canvas.width - padding * 2;
       const height = canvas.height - padding * 2;
       
@@ -135,22 +169,17 @@ const MapCanvas = ({ positions }) => {
         pathPoints.push({ x, y, accuracy: pos.accuracy });
       });
 
-      // Draw path with gradient from red to orange
+      // Draw path with white color and subtle green glow
       if (pathPoints.length > 1) {
-        const gradient = ctx.createLinearGradient(
-          pathPoints[0].x, pathPoints[0].y,
-          pathPoints[pathPoints.length - 1].x, pathPoints[pathPoints.length - 1].y
-        );
-        gradient.addColorStop(0, "red");
-        gradient.addColorStop(0.5, "orange");
-        gradient.addColorStop(1, "yellow");
-
-        ctx.beginPath();
-        ctx.strokeStyle = gradient;
-        ctx.lineWidth = 3;
+        // Draw glow effect
+        ctx.shadowColor = "#10b981";
+        ctx.shadowBlur = 5;
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = Math.max(2, Math.min(canvas.width, canvas.height) / 150);
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
         
+        ctx.beginPath();
         pathPoints.forEach((point, i) => {
           if (i === 0) {
             ctx.moveTo(point.x, point.y);
@@ -160,64 +189,70 @@ const MapCanvas = ({ positions }) => {
         });
         
         ctx.stroke();
+        ctx.shadowBlur = 0;
       }
       
       // Draw start point (green with glow effect)
       if (pathPoints.length > 0) {
         const start = pathPoints[0];
-        ctx.shadowColor = "lime";
+        const pointSize = Math.max(6, Math.min(canvas.width, canvas.height) / 60);
+        
+        ctx.shadowColor = "#10b981";
         ctx.shadowBlur = 15;
-        ctx.fillStyle = "lime";
+        ctx.fillStyle = "#10b981"; // green-500
         ctx.beginPath();
-        ctx.arc(start.x, start.y, 8, 0, 2 * Math.PI);
+        ctx.arc(start.x, start.y, pointSize, 0, 2 * Math.PI);
         ctx.fill();
         ctx.shadowBlur = 0;
         
         // Add "START" label
-        ctx.fillStyle = "white";
-        ctx.font = "10px Arial";
+        ctx.fillStyle = "#10b981";
+        ctx.font = `${Math.min(canvas.width, canvas.height) / 40}px Arial`;
         ctx.textAlign = "center";
-        ctx.fillText("START", start.x, start.y - 15);
+        ctx.fillText("START", start.x, start.y - pointSize - 5);
       }
       
-      // Draw end point (cyan with pulsing effect)
+      // Draw end point (brighter green with pulsing effect)
       if (pathPoints.length > 1) {
         const end = pathPoints[pathPoints.length - 1];
+        const pointSize = Math.max(6, Math.min(canvas.width, canvas.height) / 60);
         const time = Date.now() / 1000;
         const pulse = Math.sin(time * 4) * 0.3 + 0.7;
         
-        ctx.shadowColor = "cyan";
+        ctx.shadowColor = "#22c55e";
         ctx.shadowBlur = 20;
-        ctx.fillStyle = `rgba(0, 255, 255, ${pulse})`;
+        ctx.fillStyle = `rgba(34, 197, 94, ${pulse})`; // green-500 with pulse
         ctx.beginPath();
-        ctx.arc(end.x, end.y, 8, 0, 2 * Math.PI);
+        ctx.arc(end.x, end.y, pointSize, 0, 2 * Math.PI);
         ctx.fill();
         ctx.shadowBlur = 0;
         
         // Add "CURRENT" label
-        ctx.fillStyle = "white";
-        ctx.font = "10px Arial";
+        ctx.fillStyle = "#22c55e";
+        ctx.font = `${Math.min(canvas.width, canvas.height) / 45}px Arial`;
         ctx.textAlign = "center";
-        ctx.fillText("CURRENT", end.x, end.y - 15);
+        ctx.fillText("CURRENT", end.x, end.y - pointSize - 5);
       }
       
       // Draw intermediate points with accuracy indicators
       pathPoints.forEach((point, i) => {
         if (i > 0 && i < pathPoints.length - 1) {
+          const pointSize = Math.max(2, Math.min(canvas.width, canvas.height) / 120);
+          
           // Draw accuracy circle (larger circle = less accurate)
           const accuracy = point.accuracy || 10;
-          const accuracyRadius = Math.max(2, Math.min(accuracy / 5, 10));
+          const accuracyRadius = Math.max(pointSize, Math.min(accuracy / 5, pointSize * 3));
           
-          ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+          ctx.strokeStyle = "rgba(16, 185, 129, 0.3)"; // green-500 with opacity
           ctx.lineWidth = 1;
           ctx.beginPath();
           ctx.arc(point.x, point.y, accuracyRadius, 0, 2 * Math.PI);
           ctx.stroke();
           
           // Draw point
-          ctx.fillStyle = "white";
+          ctx.fillStyle = "#ffffff";
           ctx.beginPath();
-          ctx.arc(point.x, point.y, 3, 0, 2 * Math.PI);
+          ctx.arc(point.x, point.y, pointSize, 0, 2 * Math.PI);
           ctx.fill();
         }
       });
@@ -230,15 +265,18 @@ const MapCanvas = ({ positions }) => {
       // Fallback for browsers without Background Tasks API
       requestAnimationFrame(drawCanvas);
     }
-  }, [positions, isVisible]);
+  }, [positions, isVisible, canvasSize]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={500}
-      height={400}
-      className="border border-gray-500 rounded bg-gray-800"
-    />
+    <div ref={containerRef} className="w-full">
+      <canvas
+        ref={canvasRef}
+        width={canvasSize.width}
+        height={canvasSize.height}
+        className="border border-gray-800 rounded-lg bg-black w-full max-w-full"
+        style={{ display: 'block' }}
+      />
+    </div>
   );
 };
 
