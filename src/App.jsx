@@ -37,7 +37,7 @@ function filterValidMovements(positions) {
     // Use GPS accuracy to determine minimum movement threshold
     const minMovement = Math.max(
       (prev.accuracy || 10) + (current.accuracy || 10), // Sum of both accuracies
-      5 // Minimum 5 meters to filter out GPS noise
+      15 // Minimum 5 meters to filter out GPS noise
     );
     
     if (distance > minMovement) {
