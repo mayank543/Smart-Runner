@@ -111,10 +111,10 @@ function App() {
   const [sessionPositions, setSessionPositions] = useState([]);
   
   useEffect(() => {
-    if (tracking && positions.length === 0) {
-      setSessionPositions([]);
-      setSessionStartTime(Date.now());
-    } else {
+    if (tracking) {
+      if (sessionPositions.length === 0 && positions.length === 0) {
+        setSessionStartTime(Date.now());
+      }
       setSessionPositions(positions);
     }
   }, [tracking, positions]);
