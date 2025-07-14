@@ -32,14 +32,19 @@ function filterValidMovements(positions) {
     // Calculate distance between points
     const distance = calculateDistance(prev, current);
     
-    // Only add point if movement is significant enough
-    // Use GPS accuracy to determine minimum movement threshold
+    // More lenient filtering for walking/running
+    // Use a smaller threshold that still filters noise but allows real movement
+    const baseAccuracy = Math.max(prev.accuracy || 10, current.accuracy || 10);
     const minMovement = Math.max(
-      (prev.accuracy || 10) + (current.accuracy || 10), // Sum of both accuracies
-      5 // Minimum 5 meters to filter out GPS noise
+      baseAccuracy * 0.5, // Use 50% of accuracy instead of sum
+      2 // Minimum 2 meters instead of 5 - better for walking
     );
     
-    if (distance > minMovement) {
+    // Also consider time - if enough time has passed, include the point even if distance is small
+    const timeDiff = (current.timestamp - prev.timestamp) / 1000; // seconds
+    const shouldIncludeByTime = timeDiff > 10; // Include if 10+ seconds have passed
+    
+    if (distance > minMovement || shouldIncludeByTime) {
       filtered.push(current);
     }
   }
@@ -112,10 +117,14 @@ function App() {
   
   useEffect(() => {
     if (tracking) {
+      // Clear session when starting new tracking
       if (sessionPositions.length === 0 && positions.length === 0) {
         setSessionStartTime(Date.now());
       }
       setSessionPositions(positions);
+    } else {
+      // Clear positions when stopping tracking
+      setSessionPositions([]);
     }
   }, [tracking, positions]);
   
@@ -337,9 +346,15 @@ function App() {
               <Info className="h-4 w-4" />
               Debug Info
             </summary>
-            <pre className="mt-2 p-4 bg-gradient-to-br from-slate-800/60 to-slate-900/60 backdrop-blur-sm rounded-lg overflow-auto max-h-40 border border-slate-700/50">
-              {JSON.stringify(sessionPositions, null, 2)}
-            </pre>
+            <div className="mt-2 p-4 bg-gradient-to-br from-slate-800/60 to-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-700/50 space-y-2">
+              <p>Session Positions: {sessionPositions.length}</p>
+              <p>Filtered Positions: {filteredPositions.length}</p>
+              <p>Total Distance: {totalDistance.toFixed(2)} meters</p>
+              <p>Tracking: {tracking ? 'true' : 'false'}</p>
+              <pre className="overflow-auto max-h-40 text-xs">
+                {JSON.stringify(sessionPositions, null, 2)}
+              </pre>
+            </div>
           </details>
         </div>
       </div>
