@@ -1,59 +1,66 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "@clerk/clerk-react";
+import { Map, Zap, Timer, Navigation } from "lucide-react";
+import axios from "axios";
 
 const History = () => {
-  const { getToken } = useAuth();
   const [runs, setRuns] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchRuns = async () => {
       try {
-        const token = await getToken();
-        const res = await fetch("http://localhost:5000/api/runs", {
+        const res = await axios.get("/api/runs", {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         });
-
-        const data = await res.json();
-        setRuns(data);
+        setRuns(res.data);
       } catch (err) {
-        console.error("Failed to fetch runs:", err);
-      } finally {
-        setLoading(false);
+        console.error("Error fetching runs:", err);
       }
     };
 
     fetchRuns();
-  }, [getToken]);
+  }, []);
 
-  if (loading) return <div className="p-4 text-center">Loading runs...</div>;
+  const formatDistance = (km) => `${km.toFixed(2)} km`;
+  const formatSpeed = (kmh) => `${kmh.toFixed(1)} km/h`;
+  const formatDuration = (seconds) => {
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}m ${s}s`;
+  };
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <h2 className="text-2xl font-bold mb-4">🏃‍♂️ Your Run History</h2>
+    <div className="min-h-screen p-6 bg-slate-950 text-white">
+      <h2 className="text-3xl font-bold mb-6 text-green-400 flex items-center gap-3">
+        <Map className="h-7 w-7" />
+        Run History
+      </h2>
 
       {runs.length === 0 ? (
-        <p>No runs yet. Start running!</p>
+        <p className="text-gray-400">No runs yet. Go track one!</p>
       ) : (
-        <div className="space-y-4">
-          {runs.map((run, idx) => (
+        <div className="grid gap-4 md:grid-cols-2">
+          {runs.map((run) => (
             <div
-              key={run._id || idx}
-              className="bg-white shadow-md rounded-xl p-4 border border-gray-200"
+              key={run._id}
+              className="bg-slate-800/60 p-4 rounded-xl border border-slate-700/50 hover:border-green-400/50 transition duration-300"
             >
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-lg font-semibold">
-                    {run.distance} km @ {run.averageSpeed} km/h
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Duration: {(run.duration / 60).toFixed(2)} mins
-                  </p>
+              <p className="text-gray-400 text-sm mb-2">
+                {new Date(run.date).toLocaleString()}
+              </p>
+              <div className="text-white text-lg font-semibold mb-1 flex items-center gap-2">
+                <Navigation className="w-5 h-5 text-green-400" />
+                {formatDistance(run.distance)}
+              </div>
+              <div className="flex items-center justify-between text-sm text-gray-300">
+                <div className="flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-yellow-400" />
+                  Avg Speed: {formatSpeed(run.averageSpeed)}
                 </div>
-                <div className="text-sm text-gray-500">
-                  {new Date(run.date).toLocaleString()}
+                <div className="flex items-center gap-2">
+                  <Timer className="w-4 h-4 text-blue-400" />
+                  Time: {formatDuration(run.duration)}
                 </div>
               </div>
             </div>
