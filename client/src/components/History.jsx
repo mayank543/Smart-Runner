@@ -25,6 +25,8 @@ function formatDistance(meters) {
 }
 
 function formatSpeed(kmh) {
+  // Handle undefined, null, or NaN values
+  if (!kmh || isNaN(kmh)) return '0.0 km/h';
   return `${kmh.toFixed(1)} km/h`;
 }
 

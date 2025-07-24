@@ -1,64 +1,7 @@
 import { useMemo } from 'react';
+import { useAuth } from '@clerk/clerk-react'; // 👈 Import useAuth
 import { Play, Square, MapPin, Activity, Zap, Timer, Navigation, Wifi, Signal, Target, Map } from 'lucide-react';
 import MapCanvas from './MapCanvas';
-
-
-// Add this function to TrackerDashboard component
-const saveRunSession = async () => {
-  if (sessionPositions.length < 2) {
-    alert('Not enough data to save this run');
-    return;
-  }
-
-  const token = localStorage.getItem('token');
-  if (!token) {
-    alert('Please login to save your runs');
-    return;
-  }
-
-  const runData = {
-    distance: totalDistance,
-    avgSpeed: averageSpeed * 3.6, // Convert m/s to km/h
-    duration: (Date.now() - sessionStartTime) / 1000, // Convert to seconds
-    path: sessionPositions.map(pos => ({
-      latitude: pos.latitude,
-      longitude: pos.longitude,
-      timestamp: pos.timestamp,
-      accuracy: pos.accuracy
-    }))
-  };
-
-  try {
-    const response = await fetch('http://localhost:3000/api/runs', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(runData)
-    });
-
-    if (response.ok) {
-      alert('Run saved successfully!');
-    } else {
-      alert('Failed to save run');
-    }
-  } catch (error) {
-    console.error('Save error:', error);
-    alert('Error saving run');
-  }
-};
-
-// Add a save button to your stop tracking logic
-const handleStopTracking = () => {
-  setTracking(false);
-  if (sessionPositions.length >= 2) {
-    const shouldSave = window.confirm('Would you like to save this run to your history?');
-    if (shouldSave) {
-      saveRunSession();
-    }
-  }
-};
 
 // Calculate distance between two points
 function calculateDistance(pos1, pos2) {
@@ -168,6 +111,8 @@ function TrackerDashboard({
   status, 
   networkInfo 
 }) {
+  const { getToken } = useAuth(); // 👈 Get auth token function
+
   // Calculate stats with filtered positions
   const filteredPositions = useMemo(() => filterValidMovements(sessionPositions), [sessionPositions]);
   
@@ -187,11 +132,83 @@ function TrackerDashboard({
   const duration = sessionStartTime && sessionPositions.length > 0 ? 
     formatDuration(sessionStartTime, sessionPositions[sessionPositions.length - 1].timestamp) : '0m 0s';
 
+  // 👈 Fixed saveRunSession function with Clerk auth
+  const saveRunSession = async () => {
+    if (sessionPositions.length < 2) {
+      alert('Not enough data to save this run');
+      return;
+    }
+
+    try {
+      const token = await getToken(); // 👈 Get Clerk token
+      if (!token) {
+        alert('Please login to save your runs');
+        return;
+      }
+
+      // Calculate max speed from the session
+      let maxSpeed = 0;
+      for (let i = 1; i < sessionPositions.length; i++) {
+        const speed = calculateCurrentSpeed(sessionPositions.slice(0, i + 1));
+        if (speed > maxSpeed) maxSpeed = speed;
+      }
+
+      const runData = {
+        distance: totalDistance,
+        avgSpeed: averageSpeed * 3.6, // Convert m/s to km/h
+        maxSpeed: maxSpeed * 3.6, // Convert m/s to km/h
+        duration: (Date.now() - sessionStartTime) / 1000, // Convert to seconds
+        calories: Math.round(totalDistance * 0.06), // Rough calorie calculation
+        path: sessionPositions.map(pos => ({
+          latitude: pos.latitude,
+          longitude: pos.longitude,
+          timestamp: pos.timestamp,
+          accuracy: pos.accuracy
+        }))
+      };
+
+      console.log('Saving run data:', runData); // 👈 Debug log
+
+      const response = await fetch('http://localhost:3000/api/runs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(runData)
+      });
+
+      if (response.ok) {
+        const savedRun = await response.json();
+        console.log('Run saved successfully:', savedRun);
+        alert('Run saved successfully! Check your history to see the details.');
+      } else {
+        const errorData = await response.text();
+        console.error('Save failed:', errorData);
+        alert('Failed to save run: ' + errorData);
+      }
+    } catch (error) {
+      console.error('Save error:', error);
+      alert('Error saving run: ' + error.message);
+    }
+  };
+
+  // 👈 Fixed handleStopTracking function
+  const handleStopTracking = async () => {
+    setTracking(false);
+    if (sessionPositions.length >= 2) {
+      const shouldSave = window.confirm('Would you like to save this run to your history?');
+      if (shouldSave) {
+        await saveRunSession();
+      }
+    }
+  };
+
   return (
     <>
       <div className="mb-6 space-y-4">
         <button
-          onClick={() => setTracking(!tracking)}
+          onClick={tracking ? handleStopTracking : () => setTracking(true)} // 👈 Use handleStopTracking
           className={`group relative overflow-hidden px-8 py-4 rounded-2xl font-semibold text-lg transition-all duration-500 transform hover:scale-105 active:scale-95 flex items-center gap-3 ${
             tracking 
               ? "bg-gradient-to-r from-red-500 to-red-600 hover:from-red-400 hover:to-red-500 shadow-2xl shadow-red-500/30 text-white" 
