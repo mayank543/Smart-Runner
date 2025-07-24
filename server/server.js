@@ -11,7 +11,7 @@ dotenv.config();
 const app = express();
 
 const corsOptions = {
-  origin: 'http://localhost:5173', // Your frontend URL
+  origin: ['http://localhost:5173','https://smart-runner.vercel.app'], // Your frontend URL
   credentials: true, // Allow cookies/auth headers
   optionsSuccessStatus: 200
 };
