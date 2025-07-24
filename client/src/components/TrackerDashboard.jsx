@@ -2,6 +2,64 @@ import { useMemo } from 'react';
 import { Play, Square, MapPin, Activity, Zap, Timer, Navigation, Wifi, Signal, Target, Map } from 'lucide-react';
 import MapCanvas from './MapCanvas';
 
+
+// Add this function to TrackerDashboard component
+const saveRunSession = async () => {
+  if (sessionPositions.length < 2) {
+    alert('Not enough data to save this run');
+    return;
+  }
+
+  const token = localStorage.getItem('token');
+  if (!token) {
+    alert('Please login to save your runs');
+    return;
+  }
+
+  const runData = {
+    distance: totalDistance,
+    avgSpeed: averageSpeed * 3.6, // Convert m/s to km/h
+    duration: (Date.now() - sessionStartTime) / 1000, // Convert to seconds
+    path: sessionPositions.map(pos => ({
+      latitude: pos.latitude,
+      longitude: pos.longitude,
+      timestamp: pos.timestamp,
+      accuracy: pos.accuracy
+    }))
+  };
+
+  try {
+    const response = await fetch('http://localhost:3000/api/runs', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(runData)
+    });
+
+    if (response.ok) {
+      alert('Run saved successfully!');
+    } else {
+      alert('Failed to save run');
+    }
+  } catch (error) {
+    console.error('Save error:', error);
+    alert('Error saving run');
+  }
+};
+
+// Add a save button to your stop tracking logic
+const handleStopTracking = () => {
+  setTracking(false);
+  if (sessionPositions.length >= 2) {
+    const shouldSave = window.confirm('Would you like to save this run to your history?');
+    if (shouldSave) {
+      saveRunSession();
+    }
+  }
+};
+
 // Calculate distance between two points
 function calculateDistance(pos1, pos2) {
   const R = 6371e3; // Earth's radius in meters

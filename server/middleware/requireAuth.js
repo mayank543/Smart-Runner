@@ -1,7 +1,7 @@
 // server/middleware/requireAuth.js
-import jwt from "jsonwebtoken";
+import { clerkClient } from '@clerk/clerk-sdk-node';
 
-export const requireAuth = (req, res, next) => {
+export const requireAuth = async (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader?.startsWith("Bearer ")) {
@@ -9,11 +9,14 @@ export const requireAuth = (req, res, next) => {
   }
 
   const token = authHeader.split(" ")[1];
+  
   try {
-    const decoded = jwt.decode(token); // Clerk uses JWT-based session tokens
-    req.user = decoded.sub; // userId from Clerk
+    // Verify the token with Clerk
+    const payload = await clerkClient.verifyToken(token);
+    req.user = payload.sub; // userId from Clerk
     next();
   } catch (err) {
+    console.error("Token verification failed:", err);
     return res.status(403).json({ message: "Invalid token" });
   }
 };
