@@ -1,20 +1,22 @@
 // components/History.jsx
 import { useEffect, useState } from "react";
-import { useAuth } from "@clerk/clerk-react"; // 👈 Import useAuth from Clerk
-import { 
-  Clock, 
-  Gauge, 
-  MapPin, 
-  Timer, 
-  Activity, 
+
+// import { useAuth } from "@clerk/clerk-react"; // Removed useAuth
+import {
+  Clock,
+  Gauge,
+  MapPin,
+  Timer,
+  Activity,
   TrendingUp,
   Calendar,
   Route,
   BarChart3,
   Zap,
-  Navigation2
+  Navigation2,
+  Trash2
 } from "lucide-react";
-import MapCanvas from "./MapCanvas";
+import LeafletMapComponent from "./LeafletMapComponent";
 
 // Utility functions (same as in TrackerDashboard)
 function formatDistance(meters) {
@@ -34,7 +36,7 @@ function formatDuration(durationInSeconds) {
   const hours = Math.floor(durationInSeconds / 3600);
   const minutes = Math.floor((durationInSeconds % 3600) / 60);
   const seconds = Math.floor(durationInSeconds % 60);
-  
+
   if (hours > 0) {
     return `${hours}h ${minutes}m ${seconds}s`;
   }
@@ -52,17 +54,16 @@ function calculatePace(distance, duration) {
 
 function RunCard({ run, index, onToggleDetails, isExpanded }) {
   const runDate = new Date(run.createdAt);
-  
+
   return (
     <div className="relative group">
-      <div className="absolute -inset-0.5 bg-gradient-to-r from-green-400/20 to-blue-500/20 rounded-xl blur opacity-30 group-hover:opacity-60 transition duration-300"></div>
-      <div className="relative bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-sm rounded-xl border border-slate-700/50 hover:border-green-400/50 transition-all duration-300 overflow-hidden">
-        
+      <div className="relative bg-zinc-950 rounded-xl border border-zinc-800 hover:border-white/30 transition-all duration-300 overflow-hidden">
+
         {/* Header */}
         <div className="p-6 border-b border-slate-700/50">
           <div className="flex justify-between items-start mb-4">
             <div>
-              <h3 className="text-xl font-bold text-green-400 flex items-center gap-2">
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
                 <Activity className="h-5 w-5" />
                 Run #{index + 1}
               </h3>
@@ -73,7 +74,7 @@ function RunCard({ run, index, onToggleDetails, isExpanded }) {
             </div>
             <button
               onClick={() => onToggleDetails(run._id)}
-              className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-all duration-200 text-sm font-medium"
+              className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-all duration-200 text-sm font-medium"
             >
               {isExpanded ? 'Hide Details' : 'View Details'}
             </button>
@@ -90,7 +91,7 @@ function RunCard({ run, index, onToggleDetails, isExpanded }) {
                 Distance
               </div>
             </div>
-            
+
             <div className="text-center">
               <div className="text-2xl font-bold text-white mb-1">
                 {formatDuration(run.duration)}
@@ -100,7 +101,7 @@ function RunCard({ run, index, onToggleDetails, isExpanded }) {
                 Duration
               </div>
             </div>
-            
+
             <div className="text-center">
               <div className="text-2xl font-bold text-white mb-1">
                 {formatSpeed(run.avgSpeed)}
@@ -110,7 +111,7 @@ function RunCard({ run, index, onToggleDetails, isExpanded }) {
                 Avg Speed
               </div>
             </div>
-            
+
             <div className="text-center">
               <div className="text-2xl font-bold text-white mb-1">
                 {calculatePace(run.distance, run.duration)}
@@ -128,52 +129,52 @@ function RunCard({ run, index, onToggleDetails, isExpanded }) {
           <div className="p-6 space-y-6">
             {/* Additional Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div style={{backgroundColor: '#181818'}} className="rounded-lg p-4 border border-slate-700/50">
-                <div className="text-purple-400 font-semibold text-lg flex items-center gap-2">
+              <div className="bg-slate-950 rounded-lg p-4 border border-slate-800">
+                <div className="text-white font-semibold text-lg flex items-center gap-2">
                   <Route className="h-5 w-5" />
                   {run.path ? run.path.length : 'N/A'}
                 </div>
-                <div className="text-gray-400 text-sm">GPS Points</div>
+                <div className="text-gray-500 text-sm">GPS Points</div>
               </div>
-              
-              <div style={{backgroundColor: '#181818'}} className="rounded-lg p-4 border border-slate-700/50">
-                <div className="text-blue-400 font-semibold text-lg flex items-center gap-2">
+
+              <div className="bg-slate-950 rounded-lg p-4 border border-slate-800">
+                <div className="text-white font-semibold text-lg flex items-center gap-2">
                   <Zap className="h-5 w-5" />
                   {run.maxSpeed ? formatSpeed(run.maxSpeed) : 'N/A'}
                 </div>
-                <div className="text-gray-400 text-sm">Max Speed</div>
+                <div className="text-gray-500 text-sm">Max Speed</div>
               </div>
-              
-              <div style={{backgroundColor: '#181818'}} className="rounded-lg p-4 border border-slate-700/50">
-                <div className="text-orange-400 font-semibold text-lg flex items-center gap-2">
+
+              <div className="bg-slate-950 rounded-lg p-4 border border-slate-800">
+                <div className="text-white font-semibold text-lg flex items-center gap-2">
                   <Navigation2 className="h-5 w-5" />
                   {run.calories ? `${run.calories} cal` : 'N/A'}
                 </div>
-                <div className="text-gray-400 text-sm">Est. Calories</div>
+                <div className="text-gray-500 text-sm">Est. Calories</div>
               </div>
             </div>
 
             {/* Route Map */}
             {run.path && run.path.length > 0 && (
               <div className="space-y-4">
-                <h4 className="font-bold text-green-400 text-lg flex items-center gap-2">
+                <h4 className="font-bold text-white text-lg flex items-center gap-2">
                   <MapPin className="h-5 w-5" />
                   Route Map
                 </h4>
-                <div style={{backgroundColor: '#181818'}} className="rounded-lg p-4 border border-slate-700/50">
-                  <MapCanvas positions={run.path} />
+                <div className="bg-zinc-900 rounded-lg p-4 border border-zinc-800">
+                  <LeafletMapComponent positions={run.path} />
                   <div className="flex justify-between items-center mt-4 text-sm text-gray-400">
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-1">
-                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                        <div className="w-3 h-3 bg-white border border-black rounded-full"></div>
                         <span>Start</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                        <div className="w-3 h-3 bg-white rounded-full"></div>
                         <span>Route</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                        <div className="w-3 h-3 bg-zinc-600 border border-white rounded-full"></div>
                         <span>Finish</span>
                       </div>
                     </div>
@@ -191,7 +192,7 @@ function RunCard({ run, index, onToggleDetails, isExpanded }) {
                 <BarChart3 className="h-5 w-5" />
                 Performance Summary
               </h4>
-              <div style={{backgroundColor: '#181818'}} className="rounded-lg p-4 border border-slate-700/50">
+              <div className="bg-zinc-900 rounded-lg p-4 border border-zinc-800">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div>
                     <div className="text-gray-400 mb-2">Session Details:</div>
@@ -227,7 +228,7 @@ function RunCard({ run, index, onToggleDetails, isExpanded }) {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-300">Performance:</span>
-                        <span className={`${run.avgSpeed >= 12 ? 'text-green-400' : run.avgSpeed >= 8 ? 'text-yellow-400' : 'text-orange-400'}`}>
+                        <span className={`${run.avgSpeed >= 12 ? 'text-white' : run.avgSpeed >= 8 ? 'text-gray-300' : 'text-gray-400'}`}>
                           {run.avgSpeed >= 12 ? 'Excellent' : run.avgSpeed >= 8 ? 'Good' : 'Moderate'}
                         </span>
                       </div>
@@ -244,7 +245,7 @@ function RunCard({ run, index, onToggleDetails, isExpanded }) {
 }
 
 export default function History() {
-  const { getToken } = useAuth(); // 👈 Call useAuth at component level
+  // const { getToken } = useAuth(); // Removed useAuth
   const [runs, setRuns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedRun, setExpandedRun] = useState(null);
@@ -258,16 +259,8 @@ export default function History() {
   useEffect(() => {
     async function fetchRuns() {
       try {
-        const token = await getToken(); // 👈 Now getToken is available
-
-        const response = await fetch("http://localhost:3000/api/runs", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) throw new Error("Failed to fetch runs");
-        const data = await response.json();
+        // Read from Local Storage instead of API
+        const data = JSON.parse(localStorage.getItem("smartRunner_history") || "[]");
         setRuns(data);
 
         // Calculate overall stats
@@ -291,7 +284,20 @@ export default function History() {
     }
 
     fetchRuns();
-  }, [getToken]); // 👈 Add getToken to dependency array
+  }, []); // Removed getToken dependency
+
+  const handleClearHistory = () => {
+    if (window.confirm("Are you sure you want to clear your entire run history? This cannot be undone.")) {
+      localStorage.removeItem("smartRunner_history");
+      setRuns([]);
+      setStats({
+        totalRuns: 0,
+        totalDistance: 0,
+        totalDuration: 0,
+        avgSpeed: 0
+      });
+    }
+  };
 
   const handleToggleDetails = (runId) => {
     setExpandedRun(expandedRun === runId ? null : runId);
@@ -323,10 +329,9 @@ export default function History() {
       {/* Overall Stats Header */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="relative group">
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-green-400/20 to-emerald-500/20 rounded-xl blur opacity-30"></div>
-          <div className="relative bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-sm rounded-xl p-4 border border-slate-700/50">
-            <div className="text-2xl font-bold text-green-400 mb-1">{stats.totalRuns}</div>
-            <div className="text-gray-400 text-sm flex items-center gap-1">
+          <div className="relative bg-zinc-950 rounded-xl p-4 border border-zinc-800">
+            <div className="text-2xl font-bold text-white mb-1">{stats.totalRuns}</div>
+            <div className="text-gray-500 text-sm flex items-center gap-1">
               <Activity className="h-4 w-4" />
               Total Runs
             </div>
@@ -334,10 +339,9 @@ export default function History() {
         </div>
 
         <div className="relative group">
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-400/20 to-cyan-500/20 rounded-xl blur opacity-30"></div>
-          <div className="relative bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-sm rounded-xl p-4 border border-slate-700/50">
-            <div className="text-2xl font-bold text-blue-400 mb-1">{formatDistance(stats.totalDistance)}</div>
-            <div className="text-gray-400 text-sm flex items-center gap-1">
+          <div className="relative bg-zinc-950 rounded-xl p-4 border border-zinc-800">
+            <div className="text-2xl font-bold text-white mb-1">{formatDistance(stats.totalDistance)}</div>
+            <div className="text-gray-500 text-sm flex items-center gap-1">
               <MapPin className="h-4 w-4" />
               Total Distance
             </div>
@@ -345,10 +349,9 @@ export default function History() {
         </div>
 
         <div className="relative group">
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-400/20 to-pink-500/20 rounded-xl blur opacity-30"></div>
-          <div className="relative bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-sm rounded-xl p-4 border border-slate-700/50">
-            <div className="text-2xl font-bold text-purple-400 mb-1">{formatDuration(stats.totalDuration)}</div>
-            <div className="text-gray-400 text-sm flex items-center gap-1">
+          <div className="relative bg-zinc-950 rounded-xl p-4 border border-zinc-800">
+            <div className="text-2xl font-bold text-white mb-1">{formatDuration(stats.totalDuration)}</div>
+            <div className="text-gray-500 text-sm flex items-center gap-1">
               <Timer className="h-4 w-4" />
               Total Time
             </div>
@@ -356,10 +359,9 @@ export default function History() {
         </div>
 
         <div className="relative group">
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-400/20 to-red-500/20 rounded-xl blur opacity-30"></div>
-          <div className="relative bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-sm rounded-xl p-4 border border-slate-700/50">
-            <div className="text-2xl font-bold text-orange-400 mb-1">{formatSpeed(stats.avgSpeed)}</div>
-            <div className="text-gray-400 text-sm flex items-center gap-1">
+          <div className="relative bg-zinc-950 rounded-xl p-4 border border-zinc-800">
+            <div className="text-2xl font-bold text-white mb-1">{formatSpeed(stats.avgSpeed)}</div>
+            <div className="text-gray-500 text-sm flex items-center gap-1">
               <Gauge className="h-4 w-4" />
               Avg Speed
             </div>
@@ -369,11 +371,22 @@ export default function History() {
 
       {/* Runs List */}
       <div className="space-y-4">
-        <h2 className="text-2xl font-bold text-green-400 flex items-center gap-2">
-          <Clock className="h-6 w-6" />
-          Recent Runs
-        </h2>
-        
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+            <Clock className="h-6 w-6" />
+            Recent Runs
+          </h2>
+          {runs.length > 0 && (
+            <button
+              onClick={handleClearHistory}
+              className="flex items-center gap-2 px-4 py-2 bg-red-900/20 hover:bg-red-900/40 text-red-400 rounded-lg transition-colors text-sm"
+            >
+              <Trash2 className="h-4 w-4" />
+              Clear History
+            </button>
+          )}
+        </div>
+
         {runs.map((run, index) => (
           <RunCard
             key={run._id}

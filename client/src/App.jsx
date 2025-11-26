@@ -16,7 +16,7 @@ import {
   useUser,
 } from "@clerk/clerk-react";
 
-import MapCanvas from "./components/MapCanvas";
+
 import TrackerDashboard from "./components/TrackerDashboard";
 import useGeoTracker from "./hooks/useGeoTracker";
 import History from "./components/History";
@@ -40,9 +40,9 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen p-6 bg-gradient-to-br from-slate-900 via-black to-slate-900 text-white">
+      <div className="min-h-screen p-6 bg-black text-white">
         <div className="max-w-6xl mx-auto">
-          <h1 className="text-3xl font-bold mb-4 text-green-400 flex items-center gap-3">
+          <h1 className="text-3xl font-bold mb-4 text-white flex items-center gap-3">
             <Activity className="h-8 w-8" />
             Smart Runner
           </h1>
@@ -150,13 +150,13 @@ function LandingPage() {
       <div className="flex gap-4 justify-center">
         <Link
           to="/sign-in"
-          className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg font-medium transition-colors"
+          className="bg-white hover:bg-gray-200 text-black px-6 py-3 rounded-lg font-medium transition-colors"
         >
           Sign In
         </Link>
         <Link
           to="/sign-up"
-          className="bg-slate-700 hover:bg-slate-600 px-6 py-3 rounded-lg font-medium transition-colors"
+          className="bg-zinc-800 hover:bg-zinc-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
         >
           Sign Up
         </Link>
@@ -183,15 +183,15 @@ function SignInPage() {
           redirectUrl="/"
           appearance={{
             elements: {
-              formButtonPrimary: "bg-green-600 hover:bg-green-700",
-              card: "bg-slate-800 border-slate-700",
+              formButtonPrimary: "bg-white hover:bg-gray-200 text-black",
+              card: "bg-zinc-900 border-zinc-800",
               headerTitle: "text-white",
               headerSubtitle: "text-gray-300",
               socialButtonsBlockButton:
-                "border-slate-600 text-white hover:bg-slate-700",
+                "border-zinc-700 text-white hover:bg-zinc-800",
               formFieldLabel: "text-gray-300",
-              formFieldInput: "bg-slate-700 border-slate-600 text-white",
-              footerActionLink: "text-green-400 hover:text-green-300",
+              formFieldInput: "bg-zinc-800 border-zinc-700 text-white",
+              footerActionLink: "text-white hover:text-gray-300",
             },
           }}
         />
@@ -218,15 +218,15 @@ function SignUpPage() {
           redirectUrl="/"
           appearance={{
             elements: {
-              formButtonPrimary: "bg-green-600 hover:bg-green-700",
-              card: "bg-slate-800 border-slate-700",
+              formButtonPrimary: "bg-white hover:bg-gray-200 text-black",
+              card: "bg-zinc-900 border-zinc-800",
               headerTitle: "text-white",
               headerSubtitle: "text-gray-300",
               socialButtonsBlockButton:
-                "border-slate-600 text-white hover:bg-slate-700",
+                "border-zinc-700 text-white hover:bg-zinc-800",
               formFieldLabel: "text-gray-300",
-              formFieldInput: "bg-slate-700 border-slate-600 text-white",
-              footerActionLink: "text-green-400 hover:text-green-300",
+              formFieldInput: "bg-zinc-800 border-zinc-700 text-white",
+              footerActionLink: "text-white hover:text-gray-300",
             },
           }}
         />
