@@ -1,5 +1,6 @@
 // components/History.jsx
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 // import { useAuth } from "@clerk/clerk-react"; // Removed useAuth
 import {
@@ -14,7 +15,8 @@ import {
   BarChart3,
   Zap,
   Navigation2,
-  Trash2
+  Trash2,
+  ArrowLeft
 } from "lucide-react";
 import LeafletMapComponent from "./LeafletMapComponent";
 
@@ -52,7 +54,7 @@ function calculatePace(distance, duration) {
   return `${minutes}:${seconds.toString().padStart(2, '0')} /km`;
 }
 
-function RunCard({ run, index, onToggleDetails, isExpanded }) {
+function RunCard({ run, index, onToggleDetails, isExpanded, onDelete }) {
   const runDate = new Date(run.createdAt);
 
   return (
@@ -72,12 +74,21 @@ function RunCard({ run, index, onToggleDetails, isExpanded }) {
                 {runDate.toLocaleDateString()} at {runDate.toLocaleTimeString()}
               </div>
             </div>
-            <button
-              onClick={() => onToggleDetails(run._id)}
-              className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-all duration-200 text-sm font-medium"
-            >
-              {isExpanded ? 'Hide Details' : 'View Details'}
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => onToggleDetails(run._id)}
+                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-all duration-200 text-sm font-medium"
+              >
+                {isExpanded ? 'Hide Details' : 'View Details'}
+              </button>
+              <button
+                onClick={() => onDelete(run._id)}
+                className="p-2 bg-red-900/20 hover:bg-red-900/40 text-red-400 rounded-lg transition-all duration-200"
+                title="Delete Run"
+              >
+                <Trash2 className="h-5 w-5" />
+              </button>
+            </div>
           </div>
 
           {/* Main Stats */}
@@ -299,6 +310,35 @@ export default function History() {
     }
   };
 
+  const handleDeleteRun = (runId) => {
+    if (window.confirm("Are you sure you want to delete this run? This cannot be undone.")) {
+      const updatedRuns = runs.filter(run => run._id !== runId);
+      setRuns(updatedRuns);
+      localStorage.setItem("smartRunner_history", JSON.stringify(updatedRuns));
+
+      // Recalculate stats
+      if (updatedRuns.length > 0) {
+        const totalDistance = updatedRuns.reduce((sum, run) => sum + run.distance, 0);
+        const totalDuration = updatedRuns.reduce((sum, run) => sum + run.duration, 0);
+        const avgSpeed = updatedRuns.reduce((sum, run) => sum + run.avgSpeed, 0) / updatedRuns.length;
+
+        setStats({
+          totalRuns: updatedRuns.length,
+          totalDistance,
+          totalDuration,
+          avgSpeed,
+        });
+      } else {
+        setStats({
+          totalRuns: 0,
+          totalDistance: 0,
+          totalDuration: 0,
+          avgSpeed: 0
+        });
+      }
+    }
+  };
+
   const handleToggleDetails = (runId) => {
     setExpandedRun(expandedRun === runId ? null : runId);
   };
@@ -326,6 +366,17 @@ export default function History() {
 
   return (
     <div className="space-y-6">
+      {/* Back Navigation */}
+      <div>
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Tracker
+        </Link>
+      </div>
+
       {/* Overall Stats Header */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="relative group">
@@ -394,6 +445,7 @@ export default function History() {
             index={index}
             onToggleDetails={handleToggleDetails}
             isExpanded={expandedRun === run._id}
+            onDelete={handleDeleteRun}
           />
         ))}
       </div>
